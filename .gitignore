@@ -37,3 +37,4 @@ bazel-bin
 bazel-out
 bazel-testlogs
 bazel-daac
+bazel-darts_ac
