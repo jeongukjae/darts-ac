@@ -1,0 +1,20 @@
+cc_library(
+    name = "darts_ac",
+    hdrs = ["darts_ac.h"],
+    deps = [
+        "@darts_clone",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_test(
+    name = "darts_ac_test",
+    srcs = ["darts_ac_test.cc"],
+    size = "small",
+    deps = [
+        ":darts_ac",
+        "@com_google_absl//absl/strings",
+        "@darts_clone",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
