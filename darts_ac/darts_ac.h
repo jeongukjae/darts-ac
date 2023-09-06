@@ -73,21 +73,37 @@ class DoubleArrayAhoCorasickImpl : Darts::DoubleArrayImpl<A, B, T, C> {
 
   using Darts::DoubleArrayImpl<A, B, T, C>::set_array;
 
-  void *failure() const { return failure_; }
+  using Darts::DoubleArrayImpl<A, B, T, C>::size;
 
-  void set_failure(void *failure) {
-    failure_ = static_cast<Darts::Details::id_type *>(failure);
+  using Darts::DoubleArrayImpl<A, B, T, C>::total_size;
+
+  using Darts::DoubleArrayImpl<A, B, T, C>::unit_size;
+
+  using Darts::DoubleArrayImpl<A, B, T, C>::exactMatchSearch;
+
+  const void *failure() const { return failure_; }
+
+  std::size_t failure_size() const {
+    return sizeof(Darts::Details::id_type) * size();
   }
 
-  void *depth() const { return depth_; }
+  void set_failure(const void *failure) {
+    failure_ = static_cast<const Darts::Details::id_type *>(failure);
+  }
 
-  void set_depth(void *depth) { depth_ = static_cast<unsigned int *>(depth); }
+  const void *depth() const { return depth_; }
+
+  std::size_t depth_size() const { return sizeof(unsigned int) * size(); }
+
+  void set_depth(const void *depth) {
+    depth_ = static_cast<const unsigned int *>(depth);
+  }
 
   // TODO: implement save and open.
 
  private:
-  Darts::Details::id_type *failure_;
-  unsigned int *depth_;
+  const Darts::Details::id_type *failure_;
+  const unsigned int *depth_;
 
   // Build a failure function.
   int buildFailureLinks(
@@ -95,7 +111,7 @@ class DoubleArrayAhoCorasickImpl : Darts::DoubleArrayImpl<A, B, T, C> {
       const std::size_t *lengths,
       Darts::Details::progress_func_type progress_func = NULL);
 
-  Darts::Details::id_type findFailureLink(std::size_t parent_node_pos,
+  Darts::Details::id_type findFailureLink(Darts::Details::id_type* buf, std::size_t parent_node_pos,
                                           const key_type *key,
                                           std::size_t key_pos) const;
 
@@ -130,7 +146,7 @@ int DoubleArrayAhoCorasickImpl<A, B, T, C>::buildAhoCorasick(
   }
 
   // Set depth_.
-  this->depth_ = new unsigned int[this->size()]();
+  auto *buf = new unsigned int[this->size()]();
   for (std::size_t i = 0; i < num_keys; ++i) {
     std::size_t node_pos = 0;
     for (std::size_t j = 0; j < lengths[i]; ++j) {
@@ -138,9 +154,10 @@ int DoubleArrayAhoCorasickImpl<A, B, T, C>::buildAhoCorasick(
       if (this->traverse(keys[i], node_pos, mutable_key_pos, j + 1) == -2) {
         return -1;
       }
-      this->depth_[node_pos] = j + 1;
+      buf[node_pos] = j + 1;
     }
   }
+  this->depth_ = buf;
 
   // Build a failure function.
   return buildFailureLinks(num_keys, keys, lengths, failure_progress_func);
@@ -219,7 +236,7 @@ int DoubleArrayAhoCorasickImpl<A, B, T, C>::buildFailureLinks(
     const std::size_t *lengths,
     Darts::Details::progress_func_type progress_func) {
   // Allocate memory for the failure function and fill zeros.
-  this->failure_ = new Darts::Details::id_type[this->size()]();
+  auto* buf = new Darts::Details::id_type[this->size()]();
 
   std::size_t max_length = 0;
   for (std::size_t i = 0; i < num_keys; ++i) {
@@ -246,6 +263,7 @@ int DoubleArrayAhoCorasickImpl<A, B, T, C>::buildFailureLinks(
         // when the key is not found in the trie. this is not expected to
         // happen.
         if (val == -2) {
+          delete[] buf;
           return -1;
         }
       }
@@ -253,17 +271,18 @@ int DoubleArrayAhoCorasickImpl<A, B, T, C>::buildFailureLinks(
       std::size_t node_pos = parent_node_pos;
       auto val = this->traverse(key, node_pos, key_pos, i + 1);
       if (val == -2) {
+        delete[] buf;
         return -1;
       }
 
-      if (this->failure_[node_pos] != 0) {
+      if (buf[node_pos] != 0) {
         // The failure link is already set. Skip.
         continue;
       }
 
       // Find a failure link.
-      const auto failure_node_pos = findFailureLink(parent_node_pos, key, i);
-      this->failure_[node_pos] = failure_node_pos;
+      const auto failure_node_pos = findFailureLink(buf, parent_node_pos, key, i);
+      buf[node_pos] = failure_node_pos;
     }
 
     if (progress_func != NULL) {
@@ -271,18 +290,20 @@ int DoubleArrayAhoCorasickImpl<A, B, T, C>::buildFailureLinks(
     }
   }
 
+  failure_ = buf;
   return 0;
 }
 
 template <typename A, typename B, typename T, typename C>
 Darts::Details::id_type DoubleArrayAhoCorasickImpl<A, B, T, C>::findFailureLink(
+  Darts::Details::id_type* buf,
     std::size_t parent_node_pos, const key_type *key,
     std::size_t key_pos) const {
   if (parent_node_pos == 0)  // skip.
     return 0;
 
   while (true) {
-    const auto failure_node_pos = this->failure_[parent_node_pos];
+    const auto failure_node_pos = buf[parent_node_pos];
 
     std::size_t mutable_key_pos = 0;
     std::size_t mutable_node_pos = failure_node_pos;
