@@ -27,6 +27,7 @@ darts_ac::DoubleArrayAhoCorasick* build(const std::vector<std::string>& keys) {
 TEST(DoubleArrayAhoCorasick, build_without_failure) {
   auto* ac = build({"a", "ab", "abc", "abcd", "abcde"});
   ac->clear();
+  delete ac;
 }
 
 TEST(DoubleArrayAhoCorasick, find_works_fine) {
@@ -51,6 +52,7 @@ TEST(DoubleArrayAhoCorasick, find_works_fine) {
                                      (result_pair_type){3, 1, 5}   // d
                                      ));
   ac->clear();
+  delete ac;
 }
 
 TEST(DoubleArrayAhoCorasick, find_single_char) {
@@ -72,6 +74,7 @@ TEST(DoubleArrayAhoCorasick, find_single_char) {
                                      (result_pair_type){0, 1, 2}   // S
                                      ));
   ac->clear();
+  delete ac;
 }
 
 TEST(DoubleArrayAhoCorasick, find_test_k) {
@@ -93,6 +96,7 @@ TEST(DoubleArrayAhoCorasick, find_test_k) {
                                      (result_pair_type){1, 3, 12}  // 요
                                      ));
   ac->clear();
+  delete ac;
 }
 
 TEST(DoubleArrayAhoCorasick, find_test_j) {
@@ -121,4 +125,40 @@ TEST(DoubleArrayAhoCorasick, find_test_j) {
                                      (result_pair_type){5, 3, 18}   // る
                                      ));
   ac->clear();
+  delete ac;
+}
+
+TEST(DoubleArrayAhoCorasick, set_functions) {
+  typedef darts_ac::DoubleArrayAhoCorasick::result_pair_type result_pair_type;
+
+  auto* ac =
+      build({"あ", "ある", "で", "は", "はー", "る", "吾", "吾輩", "猫", "輩"});
+  auto* ac2 = new darts_ac::DoubleArrayAhoCorasick();
+
+  ac2->set_array(ac->array());
+  ac2->set_failure(ac->failure());
+  ac2->set_depth(ac->depth());
+
+  const std::string text = "吾輩は猫である";
+  const std::size_t maxTrieResults = 1024;
+  std::vector<result_pair_type> matches(maxTrieResults + 1);
+
+  auto num_results =
+      ac2->find(text.c_str(), matches.data(), maxTrieResults, text.size());
+
+  ASSERT_EQ(num_results, 9);
+  ASSERT_THAT(std::vector(matches.data(), matches.data() + num_results),
+              ::testing::ElementsAre((result_pair_type){6, 3, 0},   // 吾
+                                     (result_pair_type){7, 6, 0},   // 吾輩
+                                     (result_pair_type){9, 3, 3},   // 輩
+                                     (result_pair_type){3, 3, 6},   // は
+                                     (result_pair_type){8, 3, 9},   // 猫
+                                     (result_pair_type){2, 3, 12},  // で
+                                     (result_pair_type){0, 3, 15},  // あ
+                                     (result_pair_type){1, 6, 15},  // ある
+                                     (result_pair_type){5, 3, 18}   // る
+                                     ));
+  ac->clear();
+  delete ac;
+  delete ac2;
 }

@@ -69,8 +69,19 @@ class DoubleArrayAhoCorasickImpl : Darts::DoubleArrayImpl<A, B, T, C> {
     }
   }
 
+  using Darts::DoubleArrayImpl<A, B, T, C>::array;
+
+  using Darts::DoubleArrayImpl<A, B, T, C>::set_array;
+
   void *failure() const { return failure_; }
+
+  void set_failure(void *failure) {
+    failure_ = static_cast<Darts::Details::id_type *>(failure);
+  }
+
   void *depth() const { return depth_; }
+
+  void set_depth(void *depth) { depth_ = static_cast<unsigned int *>(depth); }
 
   // TODO: implement save and open.
 
