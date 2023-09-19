@@ -102,8 +102,8 @@ class DoubleArrayAhoCorasickImpl : Darts::DoubleArrayImpl<A, B, T, C> {
   // TODO: implement save and open.
 
  private:
-  const Darts::Details::id_type *failure_;
-  const unsigned int *depth_;
+  const Darts::Details::id_type *failure_ = NULL;
+  const unsigned int *depth_ = NULL;
 
   // Build a failure function.
   int buildFailureLinks(
